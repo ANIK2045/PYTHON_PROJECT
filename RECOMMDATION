@@ -1,0 +1,73 @@
+from math import sqrt
+
+# Sample user-item ratings data (user_id -> {item_id: rating})
+ratings = {
+    'User1': {'Item1': 5, 'Item2': 3, 'Item3': 4, 'Item4': 4},
+    'User2': {'Item1': 3, 'Item3': 1, 'Item4': 2},
+    'User3': {'Item1': 4, 'Item2': 2, 'Item3': 3, 'Item4': 1},
+    'User4': {'Item2': 3, 'Item3': 5, 'Item4': 4}
+}
+
+# Function to compute Pearson correlation coefficient
+def pearson_correlation(user1_ratings, user2_ratings):
+    common_items = set(user1_ratings.keys()).intersection(user2_ratings.keys())
+    
+    n = len(common_items)
+    if n == 0:
+        return 0
+    
+    # Calculate mean ratings
+    mean_user1 = sum(user1_ratings[item] for item in common_items) / n
+    mean_user2 = sum(user2_ratings[item] for item in common_items) / n
+    
+    # Calculate Pearson correlation coefficient
+    numerator = sum((user1_ratings[item] - mean_user1) * (user2_ratings[item] - mean_user2) for item in common_items)
+    denominator_user1 = sqrt(sum((user1_ratings[item] - mean_user1) ** 2 for item in common_items))
+    denominator_user2 = sqrt(sum((user2_ratings[item] - mean_user2) ** 2 for item in common_items))
+    
+    if denominator_user1 == 0 or denominator_user2 == 0:
+        return 0
+    
+    correlation = numerator / (denominator_user1 * denominator_user2)
+    return correlation
+
+# Function to find most similar users to a given user
+def find_similar_users(user_id, ratings):
+    similarities = []
+    user_ratings = ratings[user_id]
+    
+    for other_user_id, other_ratings in ratings.items():
+        if other_user_id != user_id:
+            similarity = pearson_correlation(user_ratings, other_ratings)
+            similarities.append((other_user_id, similarity))
+    
+    similarities.sort(key=lambda x: x[1], reverse=True)
+    return similarities
+
+# Function to generate recommendations for a user
+def generate_recommendations(user_id, ratings):
+    recommendations = {}
+    similar_users = find_similar_users(user_id, ratings)
+    user_ratings = ratings[user_id]
+    
+    for other_user, similarity in similar_users:
+        for item, rating in ratings[other_user].items():
+            if item not in user_ratings:
+                if item not in recommendations:
+                    recommendations[item] = 0
+                recommendations[item] += rating * similarity
+    
+    recommendations = sorted(recommendations.items(), key=lambda x: x[1], reverse=True)
+    return recommendations
+
+# Main function to demonstrate usage
+def main():
+    user_id = 'User1'
+    print(f"Recommendations for {user_id}:")
+    recommendations = generate_recommendations(user_id, ratings)
+    
+    for item, score in recommendations:
+        print(f"{item}: {score}")
+
+if __name__ == "__main__":
+    main()
